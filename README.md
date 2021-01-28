@@ -13,33 +13,33 @@ published | title | views | likes | dislikes | comments | description | thumbnai
 ## **Tutorial**
 ---
 ### <ins>**1. General Concepts**</ins>
-To follow the code in this tutorial I would recommend to have some knowledge of the next concepts:
+To follow the code in this tutorial I would recommend having some knowledge of the next concepts:
 * Python
     * `for` loops
     * functions
     * pip. 
-        * [Here](https://realpython.com/what-is-pip/) you can find a really good article that expalins what is pip.
+        * [Here](https://realpython.com/what-is-pip/) you can find a really good article that explains what is pip.
     * pandas. 
         * [This](https://pandas.pydata.org/pandas-docs/stable/user_guide/10min.html) is a gentle introduction to the pandas library.
 * JSON
     * The general structure of a JSON file
 * API's
-    * Specifically, the tutorial is going to make more sense if you know what is an API Key. To learn more about API's I recommend to watch this [video](https://www.youtube.com/watch?v=GZvSYJDk-us&t=4641s). The video shows the inner workings of the [Trello API](https://developer.atlassian.com/cloud/trello/rest/) however, the concepts that are shown can be applied to any API. This is my "go-to" reference guide when I'm stucked.
+    * Specifically, the tutorial is going to make more sense if you know what is an API Key. To learn more about API's I recommend watching this [video](https://www.youtube.com/watch?v=GZvSYJDk-us&t=4641s). The video shows the inner workings of the [Trello API](https://developer.atlassian.com/cloud/trello/rest/) however, the concepts that are shown can be applied to any API. This is my "go-to" reference guide when I'm stuck.
 
-If you do not know how any of this concepts work I added resources troughout the tutorial so you can revised them at your own pace.
+If you do not know how any of these concepts work I added resources throughout the tutorial so you can revise them at your own pace.
 
 ### <ins>**2. The Set Up**</ins>
 In addition to the concepts mentioned above, before you start the tutorial be sure to have:
 
 * A Youtube API Key
-    * In order to retrieve the data from Youtube we're going to use the [Youtube API](https://developers.google.com/youtube/v3). All the API's from Google properties require a Google Account and autorization credentials.
-    * To learn how to setup a Google Account and get this credentials you can follow this [tutorial](https://developers.google.com/youtube/registering_an_application).
-    * Once you have your credentials, you need to request an API Key. You can follow [this instructions](https://cloud.google.com/resource-manager/docs/creating-managing-projects?visit_id=637472330160631271-1024614839&rd=1) to get your API Key.
+    * In order to retrieve the data from Youtube we're going to use the [Youtube API](https://developers.google.com/youtube/v3). All the APIs from Google properties require a Google Account and authorization credentials.
+    * To learn how to set up a Google Account and get these credentials you can follow this [tutorial](https://developers.google.com/youtube/registering_an_application).
+    * Once you have your credentials, you need to request an API Key. You can follow [this instruction](https://cloud.google.com/resource-manager/docs/creating-managing-projects?visit_id=637472330160631271-1024614839&rd=1) to get your API Key.
     * If you want additional information about the API setup, Youtube offers a nice introduction [here](https://developers.google.com/youtube/v3/getting-started).
 * A Code Editor
     * I use VS Code. You can download it [here](https://code.visualstudio.com/).
 * Python
-    * If you use a Mac you already have Python installed. If you use a Windows PC or Linux, you can download Python [here]("").
+    * If you use a Mac you already have Python installed. If you use a Windows PC or Linux, you can download Python [here](https://www.python.org/downloads/).
     * The `pandas` library. You can download it from [here](https://pandas.pydata.org/).
 
 ### <ins>**3. The Code**</ins>
@@ -64,7 +64,7 @@ channel_stats = youtube.channels().list(
     id=channel_id
     ).execute()
 ```
-3. Upload Code
+3. Now we're going to create a variable called `upload`. This variable will contain the id of the Upload playlist. Every channel on Youtube has this playlist. Some channels hide it to the users and others leave it visible. This playlist is important because it contains every video the channel has ever published.
 
 ```python
 #Get the "ID" of the "Upload" playlist. 
@@ -76,10 +76,13 @@ upload = str(youtube.channels().list(
     id= channel_id
     ).execute()["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"])
 ```
-4. Loop Code to get all the videos
+* Once we have the upload playlist id stored in our `upload` variable we can use it on the `playlist()` method to get the key stats of all the videos from the channel. To learn more about this method click [here](https://googleapis.github.io/google-api-python-client/docs/dyn/youtube_v3.playlistItems.html).
+
+5. One important factor that we need to keep in mind is that every call we make to the Youtube API can only return 50 results, so we need to create a `while` loop that will run the script the number of times necessary to get all the videos. Luckily, the Youtube API offers a parameter inside the `list()` method called `pageToken` that helps us to keep track of how many pages left need to be looped in our code before we get all the videos from the channel. To learn more about this parameter (and the `list()` method inside `playlist()`) click [here](https://googleapis.github.io/google-api-python-client/docs/dyn/youtube_v3.playlistItems.html#list).
+
 
 ```python
-# Basic Setup
+# nextPageToken right now is empty but we will change the value our while loop runs. 
 nextPageToken = None
 playlist_id = upload
 
@@ -98,7 +101,7 @@ while True:
 
     pl_response = pl_request.execute()
     
-    # Store in a list the first 50 videoId's from the dictionary that we stored on "pl_response"
+    # Store in a list the first 50 videoIds from the dictionary that we stored on "pl_response"
     vid_ids=[]
     
     for item in pl_response["items"]:
@@ -112,7 +115,7 @@ while True:
 
     vid_response = vid_request.execute()
 
-    # Send the amount of views and the URL of each video to the videos empty list that was declared at the beginning of the code.
+    # Send the number of views and the URL of each video to the empty list that was declared at the beginning of the code called "videos".
     for i in vid_response["items"]:
         vid_views = i["statistics"]
         vid_snip = i["snippet"]
@@ -139,21 +142,19 @@ while True:
 
     if not nextPageToken:
         break
-
-videos.sort(key=lambda vid: vid["comments"], reverse =False)
 ```
-5. Naming the file
 
-```python
-name_of_file= f"{title_of_channel}.csv".replace(" ","_")
-```
-6. Turn the dictionary into a pandas dataframe and into a CSV file.
+
+5. The final step is turning the `video` variable, which currently holds all the information about the channel, into a `pandas` dataframe. To this, we simply use the `from_dict` method on the `video` variable and then, turn that dataframe into a CSV using the `to_csv` method. We can create a variable that stores the name of the channel as a string and use that variable inside the `to_csv` method to store the CSV with the name of the channel.
+
 ```python
 import pandas as pd
 
+name_of_file= f"{title_of_channel}.csv".replace(" ","_")
 pd.DataFrame.from_dict(videos).to_csv(name_of_file)
 ```
-7. All code
+7. If you followed all the tutorial the final result should be something close to this: 
+
 ```python
 from googleapiclient.discovery import build
 import pandas as pd
@@ -230,4 +231,5 @@ while True:
 name_of_file= f"{title_of_channel}.csv".replace(" ","_")
 pd.DataFrame.from_dict(videos).to_csv(name_of_file)
 ```
+
 
